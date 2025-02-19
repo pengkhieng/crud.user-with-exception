@@ -4,19 +4,24 @@ import com.crud.user_with_exception.entity.User;
 import com.crud.user_with_exception.entity.dto.UserDTO;
 import com.crud.user_with_exception.exception.EmailAlreadyExistsException;
 import com.crud.user_with_exception.exception.UserNotFoundException;
+import com.crud.user_with_exception.mapper.EntityMapper;
 import com.crud.user_with_exception.repository.UserRepository;
 import com.crud.user_with_exception.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private EntityMapper entityMapper;
 
     @Override
     public User save(User user) {
@@ -26,7 +31,6 @@ public class UserServiceImpl implements UserService {
         }
         return userRepository.save(user);
     }
-
 
     @Override
     public User findUserById(Long id) {
@@ -44,12 +48,11 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new UserNotFoundException("User not found with id: " + id);
         }
-        // Update the user's details
-        user.setName(dto.getName());
-        user.setEmail(dto.getEmail());
+        user = entityMapper.convertToUser(dto);
+        user.setId(id);
+
         return userRepository.save(user);
     }
-
 
     @Override
     public void deleteUserById(Long id) {
@@ -57,5 +60,11 @@ public class UserServiceImpl implements UserService {
         if (user != null) {
             userRepository.delete(user);
         }
+    }
+
+    @Override
+    public Page<UserDTO> getAllUsersWithPage(int page, int size) {
+        Page<User> usersPage = userRepository.findAll(PageRequest.of(page, size));
+        return usersPage.map(entityMapper::convertToUserDTO);
     }
 }
